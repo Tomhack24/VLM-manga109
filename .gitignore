@@ -1,0 +1,6 @@
+apptainer/VLM-manga109.sif
+src/data/
+
+.venv
+
+container.sh
