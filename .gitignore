@@ -4,3 +4,6 @@ src/data/
 .venv
 
 container.sh
+
+unsloth_compiled_cache/
+
