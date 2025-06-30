@@ -9,7 +9,8 @@ From: nvidia/cuda:11.8.0-base-ubuntu22.04
     ca-certificates \
     git \
     build-essential \
-    unzip 
+    unzip \
+    gcc
 
     echo "==> Installing uv..."
     curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -39,7 +40,6 @@ From: nvidia/cuda:11.8.0-base-ubuntu22.04
     fi
 
     echo "==> Cleaning up build dependencies..."
-    apt-get purge -y --auto-remove build-essential
     apt-get clean
     rm -rf /var/lib/apt/lists/*
 
