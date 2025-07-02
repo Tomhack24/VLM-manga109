@@ -4,6 +4,13 @@ from qwen_vl_utils import process_vision_info
 from peft import LoraConfig, get_peft_model
 import torch.nn as nn
 import json
+from ..src.config.config_loader import load_config, get_model_config, get_bnb_config, get_lora_config
+
+# 設定を読み込み
+config = load_config()
+model_config = get_model_config(config)
+bnb_config_dict = get_bnb_config(config)
+lora_config_dict = get_lora_config(config)
 
 video_paths = []
 
@@ -12,26 +19,19 @@ for i in range(2, 3):
     video_paths.append(path)
 
 print(f"Video paths: {video_paths}")
-USE_QLORA = True
 
-
-if USE_QLORA:
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_use_double_quant=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_compute_type=torch.bfloat16
-    )
-
-MODEL_ID = "Qwen/Qwen2.5-VL-3B-Instruct"
-
-if torch.cuda.is_available():
-
-    device = "cuda:1"
-else:
-    device = "cpu"
+# 設定からの値を使用
+USE_QLORA = model_config.get("use_qlora", True)
+MODEL_ID = model_config.get("id", "Qwen/Qwen2.5-VL-3B-Instruct")
+device = model_config.get("device", "cuda:1" if torch.cuda.is_available() else "cpu")
 
 print(f"Using device: {device}")
+print(f"Model ID: {MODEL_ID}")
+print(f"Use QLoRA: {USE_QLORA}")
+
+if USE_QLORA:
+    # YAMLから設定を読み込んでBitsAndBytesConfigを作成
+    bnb_config = BitsAndBytesConfig(**bnb_config_dict)
 
 
 model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
@@ -52,15 +52,22 @@ def get_all_linear_layer_names(model):
             target_modules.append(name)
     return target_modules
 
-target_modules = get_all_linear_layer_names(model)
+# target_modulesの決定：設定で指定されている場合はそれを使用、そうでなければ全Linearレイヤーを取得
+if lora_config_dict.get("target_modules"):
+    target_modules = lora_config_dict["target_modules"]
+    print(f"Using configured target modules: {target_modules}")
+else:
+    target_modules = get_all_linear_layer_names(model)
+    print(f"Using all linear layers as target modules: {len(target_modules)} modules found")
 
+# YAMLから設定を読み込んでLoraConfigを作成
 lora_config = LoraConfig(
-    lora_alpha=16,
-    lora_dropout=0.05,
-    r=8,
-    bias="none",   # "none"は、LoRAのバイアスを使用しないことを意味します 
+    lora_alpha=lora_config_dict.get("lora_alpha", 16),
+    lora_dropout=lora_config_dict.get("lora_dropout", 0.05),
+    r=lora_config_dict.get("r", 8),
+    bias=lora_config_dict.get("bias", "none"),
     target_modules=target_modules,
-    task_type="CAUSAL_LM", #次のトークン予測タスク
+    task_type=lora_config_dict.get("task_type", "CAUSAL_LM"),
 )
 
 
