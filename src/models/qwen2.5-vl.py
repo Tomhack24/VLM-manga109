@@ -4,7 +4,7 @@ from qwen_vl_utils import process_vision_info
 from peft import LoraConfig, get_peft_model
 import torch.nn as nn
 import json
-from ..src.config.config_loader import load_config, get_model_config, get_bnb_config, get_lora_config
+from src.config.config_loader import load_config, get_model_config, get_bnb_config, get_lora_config
 
 # 設定を読み込み
 config = load_config()
